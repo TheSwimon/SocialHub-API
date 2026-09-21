@@ -1,15 +1,21 @@
-﻿namespace SocialHub.Api.Entities
+﻿
+using System.ComponentModel.DataAnnotations;
+
+namespace SocialHub.Api.Entities
 {
     public class User
     {
-        public Guid UserId { get; set; } = Guid.NewGuid();
-        public required string Username { get; set; } 
-        public required string Email { get; set; } 
+        public int UserId { get; set; }
+        public required string Username { get; set; }
+        public required string Email { get; set; }
+
         public required string PasswordHash { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public List<Post> Posts { get; set; } = new List<Post>();
+        public ICollection<Post> Posts { get; set; } = [];
 
-    }
+        public ICollection<Comment> Comments { get; set; } = [];
+
+    }   
 }
