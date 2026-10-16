@@ -16,7 +16,7 @@ namespace SocialHub.Api.DTOs.RegisterDtos
         [Required]
         public required string Email { get; set; }
 
-        [MinLength(6)]
+        [MinLength(8)]
         [MaxLength(128)]
         [Required]
         public required string Password { get; set; }

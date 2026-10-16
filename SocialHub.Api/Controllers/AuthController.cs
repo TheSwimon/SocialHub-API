@@ -18,13 +18,12 @@ namespace SocialHub.Api.Controllers
     [ApiController]
     public class AuthController(IConfiguration configuration, UserManager<ApplicationUser> userManager, IEmailService brevoEmailService, ILogger<AuthController> logger) : ControllerBase
     {
-        [HttpPost]
-        [Route("register")]
+        [HttpPost("register")]
         [ProducesResponseType(typeof(RegisterResponseDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<RegisterResponseDto>> Register(RegisterRequestDto request)
         {
-           
+
             var newUser = new ApplicationUser
             {
                 Email = request.Email,
@@ -53,7 +52,7 @@ namespace SocialHub.Api.Controllers
 
             } catch(Exception ex)
             {
-                logger.LogError(ex, "Failed to send confirmation email to  user {UserId}", newUser.Id);
+                logger.LogError(ex, "Failed to send confirmation email to user {UserId}", newUser.Id);
             }
            
 
@@ -71,6 +70,8 @@ namespace SocialHub.Api.Controllers
 
         [HttpPost]
         [Route("login")]
+        [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<LoginResponseDto>> LoginAsync(LoginRequestDto request)
         { 
 
