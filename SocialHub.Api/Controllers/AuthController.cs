@@ -68,36 +68,36 @@ namespace SocialHub.Api.Controllers
 
 
 
-        [HttpPost]
-        [Route("login")]
+        [HttpPost("login")]
         [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<LoginResponseDto>> LoginAsync(LoginRequestDto request)
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<LoginResponseDto>> Login(LoginRequestDto request)
         { 
 
-            var user = request.Login.Contains("@") ? await userManager.FindByEmailAsync(request.Login) : await userManager.FindByNameAsync(request.Login);
-            const string invalidCredMessage = "Incorrect credentials";
+            var user = request.Login.Contains('@') ? await userManager.FindByEmailAsync(request.Login) : await userManager.FindByNameAsync(request.Login);
+            const string invalidCredMessage = "Incorrect credentials.";
 
             if (user is null)
             {
-                return Unauthorized(new { message = invalidCredMessage });
+                return Problem(title: invalidCredMessage, statusCode: StatusCodes.Status401Unauthorized);
             }
 
             if (await userManager.IsLockedOutAsync(user))
             {
-                return Unauthorized(new { message = invalidCredMessage });
+                return Problem(title: invalidCredMessage, statusCode: StatusCodes.Status401Unauthorized);
             }
-
 
             if (!await userManager.CheckPasswordAsync(user, request.Password))
             {
                 await userManager.AccessFailedAsync(user);
-                return Unauthorized(new { message = invalidCredMessage });
+                return Problem(title: invalidCredMessage, statusCode: StatusCodes.Status401Unauthorized);
             }
 
-            if (!await userManager.IsEmailConfirmedAsync(user))
+            if (!user.EmailConfirmed)
             {
-                return Unauthorized(new { message = "Please confirm your email first." });
+                return Problem(title: "Please confirm your email first.", statusCode: StatusCodes.Status403Forbidden, extensions: new Dictionary<string, object?> { ["code"] = "EmailNotConfirmed" });
             }
 
 
@@ -105,7 +105,7 @@ namespace SocialHub.Api.Controllers
 
             var token = GenerateJwtToken(user);
 
-            return Ok(new LoginResponseDto { AccessToken = token});
+            return Ok(new LoginResponseDto { AccessToken = token });
         }
 
         [HttpGet("confirm-email", Name = "ConfirmEmail")]

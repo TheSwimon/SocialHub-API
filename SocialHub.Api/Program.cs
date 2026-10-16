@@ -38,6 +38,10 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     options.User.RequireUniqueEmail = true; 
     options.User.AllowedUserNameCharacters =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
+
+    options.Lockout.AllowedForNewUsers = true;
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
 })
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
