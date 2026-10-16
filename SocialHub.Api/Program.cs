@@ -51,13 +51,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,
-            ValidIssuer = "SocialHubApp",
-            ValidateAudience = true,
-            ValidAudience = "SocialHubApp",
+            ValidateIssuer = false,
+            ValidateAudience = false,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!))
+            ClockSkew = TimeSpan.Zero
         };
     });
 
@@ -65,7 +64,6 @@ builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 
 builder.Services.AddHttpClient<IEmailService, BrevoEmailService>();
-
 
 
 var app = builder.Build();

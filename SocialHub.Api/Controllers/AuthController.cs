@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SocialHub.Api.Data;
+using SocialHub.Api.DTOs.EmailConfirmationDtos;
 using SocialHub.Api.DTOs.LoginDtos;
 using SocialHub.Api.DTOs.RegisterDtos;
 using SocialHub.Api.Entities;
@@ -118,23 +119,36 @@ namespace SocialHub.Api.Controllers
         }
 
         [HttpGet("confirm-email", Name = "ConfirmEmail")]
-        public async Task<ActionResult> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
+        [ProducesResponseType(typeof(EmailConfirmationResponseDto), statusCode: StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), statusCode: StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<EmailConfirmationResponseDto>> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
         {
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
+            {
+                return Problem(title: "Invalid confirmation link", statusCode: StatusCodes.Status400BadRequest);
+            }
+
+
             var user = await userManager.FindByIdAsync(userId); 
 
             if (user is null)
             {
-                return BadRequest(new { message = "Invalid confirmation link" });
+                return Problem(title: "Invalid confirmation link", statusCode: StatusCodes.Status400BadRequest);
             }
 
-            var response = await userManager.ConfirmEmailAsync(user, token);
-
-            if (!response.Succeeded)
+            if (user.EmailConfirmed)
             {
-                return BadRequest(new { message = "Invalid confirmation link" });
+                return Ok(new EmailConfirmationResponseDto { UserId = user.Id, Message = "Email has been confirmed. You can now log in." });
             }
 
-            return Ok(new { message = "Email confirmed, you can log in now." });
+            var result = await userManager.ConfirmEmailAsync(user, token);
+
+            if (!result.Succeeded)
+            {
+                return Problem(title: "Invalid confirmation link", statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            return Ok(new EmailConfirmationResponseDto { UserId = user.Id, Message = "Email has been confirmed. You can now log in."});
         }
         
 
@@ -143,10 +157,10 @@ namespace SocialHub.Api.Controllers
         {
             var claims = new List<Claim>
             {
-                //Check
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.UserName!),
-                new Claim(ClaimTypes.Email, user.Email!)
+                new Claim(ClaimTypes.Email, user.Email!),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
 
             };
 
@@ -155,16 +169,16 @@ namespace SocialHub.Api.Controllers
 
             var credentials = new SigningCredentials(symmetricKey, SecurityAlgorithms.HmacSha256);
 
+            var expirationInMinutes = (configuration.GetValue<int?>("JwtSettings:ExpirationMinutes") ?? throw new InvalidOperationException("JwtSettings:ExpirationMinutes is not configured"));
 
-            var tokenDescriptor = new JwtSecurityToken(
-                issuer: "SocialHubApp",
-                audience: "SocialHubApp",
+
+            var jwtSecurityToken = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(20),   
+                expires: DateTime.UtcNow.AddMinutes(expirationInMinutes),
                 signingCredentials: credentials
                 );
 
-            return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
+            return new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
         }
     }
 }
