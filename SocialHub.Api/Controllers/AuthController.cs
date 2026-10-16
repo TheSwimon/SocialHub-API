@@ -16,7 +16,7 @@ namespace SocialHub.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(IConfiguration configuration, UserManager<ApplicationUser> userManager, IEmailService brevoEmailService, ILogger<AuthController> logger) : ControllerBase
+    public class AuthController(IConfiguration configuration, UserManager<ApplicationUser> userManager, IEmailService brevoEmailService, ILogger<AuthController> logger, IWebHostEnvironment _environment) : ControllerBase
     {
         [HttpPost("register")]
         [ProducesResponseType(typeof(RegisterResponseDto), StatusCodes.Status201Created)]
@@ -42,18 +42,27 @@ namespace SocialHub.Api.Controllers
                 return ValidationProblem(ModelState);
             }
 
-            var token = await userManager.GenerateEmailConfirmationTokenAsync(newUser);
-
-            var confirmationLink = Url.Link("ConfirmEmail", new { userId = newUser.Id, token });
-
-            try
+            if (_environment.IsDevelopment())
             {
-                await brevoEmailService.SendAsync(newUser.Email, "Please confirm your email address", $"Please confirm your email address by clicking <a href=\"{confirmationLink}\">this link</a>.");
-
-            } catch(Exception ex)
-            {
-                logger.LogError(ex, "Failed to send confirmation email to user {UserId}", newUser.Id);
+                await userManager.ConfirmEmailAsync(newUser, await userManager.GenerateEmailConfirmationTokenAsync(newUser));   
             }
+            else
+            {
+                var token = await userManager.GenerateEmailConfirmationTokenAsync(newUser);
+
+                var confirmationLink = Url.Link("ConfirmEmail", new { userId = newUser.Id, token });
+
+                try
+                {
+                    await brevoEmailService.SendAsync(newUser.Email, "Please confirm your email address", $"Please confirm your email address by clicking <a href=\"{confirmationLink}\">this link</a>.");
+
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to send confirmation email to user {UserId}", newUser.Id);
+                }
+            }
+            
            
 
             var response = new RegisterResponseDto()
