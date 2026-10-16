@@ -16,5 +16,5 @@ namespace SocialHub.Api.Entities
 
         public ICollection<Comment> Comments { get; set; } = [];
 
-    }
+    } 
 }

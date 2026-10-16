@@ -16,10 +16,12 @@ namespace SocialHub.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(IConfiguration configuration, UserManager<ApplicationUser> userManager, IEmailService brevoEmailService) : ControllerBase
+    public class AuthController(IConfiguration configuration, UserManager<ApplicationUser> userManager, IEmailService brevoEmailService, ILogger<AuthController> logger) : ControllerBase
     {
         [HttpPost]
         [Route("register")]
+        [ProducesResponseType(typeof(RegisterResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<RegisterResponseDto>> Register(RegisterRequestDto request)
         {
            
@@ -33,22 +35,36 @@ namespace SocialHub.Api.Controllers
 
             if (!result.Succeeded)
             { 
-                return BadRequest(result.Errors);
+                foreach(var error in result.Errors)
+                {
+                    ModelState.AddModelError(error.Code, error.Description);
+                }
+
+                return ValidationProblem(ModelState);
             }
 
             var token = await userManager.GenerateEmailConfirmationTokenAsync(newUser);
 
             var confirmationLink = Url.Link("ConfirmEmail", new { userId = newUser.Id, token });
 
-            await brevoEmailService.SendAsync("lordkipanidzegeorge@gmail.com", "Please, confirm your email address", $"Confirm your email at the specified link - {confirmationLink}");
-
-            var responseDto = new RegisterResponseDto()
+            try
             {
+                await brevoEmailService.SendAsync(newUser.Email, "Please confirm your email address", $"Please confirm your email address by clicking <a href=\"{confirmationLink}\">this link</a>.");
+
+            } catch(Exception ex)
+            {
+                logger.LogError(ex, "Failed to send confirmation email to  user {UserId}", newUser.Id);
+            }
+           
+
+            var response = new RegisterResponseDto()
+            {
+                UserId = newUser.Id,
                 Email = newUser.Email,
                 Username = newUser.UserName
             };
 
-            return Ok(new { message = "We've sent you a confirmation link on email", user = responseDto});
+            return StatusCode(StatusCodes.Status201Created, response);
         }
 
 
