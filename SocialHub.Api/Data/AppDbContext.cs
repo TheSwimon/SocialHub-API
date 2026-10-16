@@ -1,12 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SocialHub.Api.Entities;
 
 namespace SocialHub.Api.Data
 {
-    public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+    public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
     {
 
-        public DbSet<User> Users { get; set; }
         public DbSet<Post> Posts { get; set; }
 
         public DbSet<Comment> Comments { get; set; }
@@ -16,9 +17,9 @@ namespace SocialHub.Api.Data
             base.OnModelCreating(modelBuilder);
 
 
-            modelBuilder.Entity<User>(user =>
+            modelBuilder.Entity<ApplicationUser>(user =>
             {
-                user.Property(u => u.Username)
+                user.Property(u => u.UserName)
                 .HasMaxLength(30);
 
                 user.Property(u => u.Email)
@@ -27,8 +28,8 @@ namespace SocialHub.Api.Data
                 user.Property(u => u.PasswordHash)
                 .HasMaxLength(256);
 
-                user.HasIndex(u => u.Username).IsUnique();
-                user.HasIndex(u => u.Email).IsUnique();
+                user.HasIndex(u => u.NormalizedEmail).IsUnique();
+
             });
 
             modelBuilder.Entity<Post>(post =>
