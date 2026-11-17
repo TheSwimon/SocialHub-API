@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SocialHub.Api.Data;
-using SocialHub.Api.DTOs.EmailConfirmationDtos;
-using SocialHub.Api.DTOs.LoginDtos;
-using SocialHub.Api.DTOs.RegisterDtos;
+using SocialHub.Api.DTOs.AuthDtos.EmailConfirmationDtos;
+using SocialHub.Api.DTOs.AuthDtos.LoginDtos;
+using SocialHub.Api.DTOs.AuthDtos.RegisterDtos;
 using SocialHub.Api.Entities;
 using SocialHub.Api.Services;
 using System.IdentityModel.Tokens.Jwt;
@@ -17,7 +17,7 @@ namespace SocialHub.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(IConfiguration configuration, UserManager<ApplicationUser> userManager, IEmailService brevoEmailService, ILogger<AuthController> logger, IWebHostEnvironment _environment) : ControllerBase
+    public class AuthController(IConfiguration configuration, UserManager<ApplicationUser> userManager, IEmailService brevoEmailService, ILogger<AuthController> logger, IWebHostEnvironment environment) : ControllerBase
     {
         [HttpPost("register")]
         [ProducesResponseType(typeof(RegisterResponseDto), StatusCodes.Status201Created)]
@@ -43,9 +43,10 @@ namespace SocialHub.Api.Controllers
                 return ValidationProblem(ModelState);
             }
 
-            if (_environment.IsDevelopment())
+
+            if (environment.IsDevelopment())
             {
-                await userManager.ConfirmEmailAsync(newUser, await userManager.GenerateEmailConfirmationTokenAsync(newUser));   
+                await userManager.ConfirmEmailAsync(newUser, await userManager.GenerateEmailConfirmationTokenAsync(newUser));
             }
             else
             {
@@ -63,8 +64,7 @@ namespace SocialHub.Api.Controllers
                     logger.LogError(ex, "Failed to send confirmation email to user {UserId}", newUser.Id);
                 }
             }
-            
-           
+   
 
             var response = new RegisterResponseDto()
             {
@@ -75,6 +75,7 @@ namespace SocialHub.Api.Controllers
 
             return StatusCode(StatusCodes.Status201Created, response);
         }
+
 
 
 
@@ -118,10 +119,13 @@ namespace SocialHub.Api.Controllers
             return Ok(new LoginResponseDto { AccessToken = token });
         }
 
+
+
+
         [HttpGet("confirm-email", Name = "ConfirmEmail")]
-        [ProducesResponseType(typeof(EmailConfirmationResponseDto), statusCode: StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MessageResponseDto), statusCode: StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), statusCode: StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<EmailConfirmationResponseDto>> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
+        public async Task<ActionResult<MessageResponseDto>> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
         {
             if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
             {
@@ -138,7 +142,7 @@ namespace SocialHub.Api.Controllers
 
             if (user.EmailConfirmed)
             {
-                return Ok(new EmailConfirmationResponseDto { UserId = user.Id, Message = "Email has been confirmed. You can now log in." });
+                return Ok(new MessageResponseDto {Message = "Email has been confirmed. You can now log in." });
             }
 
             var result = await userManager.ConfirmEmailAsync(user, token);
@@ -148,9 +152,49 @@ namespace SocialHub.Api.Controllers
                 return Problem(title: "Invalid confirmation link", statusCode: StatusCodes.Status400BadRequest);
             }
 
-            return Ok(new EmailConfirmationResponseDto { UserId = user.Id, Message = "Email has been confirmed. You can now log in."});
+            return Ok(new MessageResponseDto {Message = "Email has been confirmed. You can now log in."});
         }
-        
+
+
+
+
+        [HttpPost("resend-email-confirmation", Name = "ResendEmailConfirmation")]
+        [ProducesResponseType(typeof(MessageResponseDto), statusCode: StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), statusCode: StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<MessageResponseDto>> ResendEmailConfirmation([FromBody] ResendEmailConfirmationRequestDto request)
+        {
+            var user = await userManager.FindByEmailAsync(request.Email);
+            const string message = "If this email needs confirmation, we've sent a new link. Please check your inbox and spam folder.";
+
+            if (user is null || user.EmailConfirmed)
+            {
+                return Ok(new MessageResponseDto { Message = message });
+            }
+
+            if (environment.IsDevelopment())
+            {
+                await userManager.ConfirmEmailAsync(user, await userManager.GenerateEmailConfirmationTokenAsync(user));
+            }
+            else
+            {
+                var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
+
+                var confirmationLink = Url.Link("ConfirmEmail", new { userId = user.Id, token });
+
+                try
+                {
+                    await brevoEmailService.SendAsync(user.Email!, "Please confirm your email address", $"Please confirm your email address by clicking <a href=\"{confirmationLink}\">this link</a>.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to send confirmation email to user {UserId}", user.Id);
+                }
+            }
+            
+
+            return Ok(new MessageResponseDto { Message = message });
+        }
+
 
 
         private string GenerateJwtToken(ApplicationUser user)

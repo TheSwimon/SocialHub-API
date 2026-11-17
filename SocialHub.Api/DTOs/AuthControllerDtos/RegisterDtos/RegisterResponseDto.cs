@@ -1,4 +1,4 @@
-﻿namespace SocialHub.Api.DTOs.RegisterDtos
+﻿namespace SocialHub.Api.DTOs.AuthDtos.RegisterDtos
 {
     public class RegisterResponseDto
     {

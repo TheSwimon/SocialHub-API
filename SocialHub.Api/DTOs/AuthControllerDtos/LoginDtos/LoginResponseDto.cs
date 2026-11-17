@@ -1,4 +1,4 @@
-﻿namespace SocialHub.Api.DTOs.LoginDtos
+﻿namespace SocialHub.Api.DTOs.AuthDtos.LoginDtos
 {
     public class LoginResponseDto
     {

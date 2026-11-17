@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SocialHub.Api.DTOs.RegisterDtos
+namespace SocialHub.Api.DTOs.AuthDtos.RegisterDtos
 {
     public class RegisterRequestDto
     {
