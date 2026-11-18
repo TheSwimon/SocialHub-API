@@ -19,7 +19,7 @@ namespace SocialHub.Api.Controllers
         {
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if (string.IsNullOrWhiteSpace(userIdClaim) || Guid.TryParse(userIdClaim, out Guid authorId))
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid authorId))
             {
                 return Unauthorized("The authentication token is invalid or missing the user id claim.");
             }
@@ -48,9 +48,9 @@ namespace SocialHub.Api.Controllers
 
 
         [HttpGet]
-        public async Task<ActionResult<PostResponseDto>> GetPost(int id)
+        public async Task<ActionResult<PostResponseDto>> GetPost([FromQuery] int id)
         {
-            var dto = dbContext.Posts
+            var dto = await dbContext.Posts
                 .AsNoTracking()
                 .Where(p => p.PostId == id)
                 .Select(p => new PostResponseDto { PostId = p.PostId, Text = p.Text, CreatedAt = p.CreatedAt, Title = p.Title })
@@ -63,9 +63,6 @@ namespace SocialHub.Api.Controllers
 
             return Ok(dto);
         }
-
-
-
 
     }
 }   
