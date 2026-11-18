@@ -8,5 +8,10 @@
         public string? Title { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public required Guid AuthorId { get; set; }
+
+        public required string AuthorUserName { get; set; }
+
     }
 }
