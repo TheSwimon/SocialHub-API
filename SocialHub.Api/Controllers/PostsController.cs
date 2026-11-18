@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SocialHub.Api.Data;
 using SocialHub.Api.DTOs.PostControllerDtos.PostDtos;
 using SocialHub.Api.Entities;
@@ -8,7 +9,7 @@ using System.Security.Claims;
 
 namespace SocialHub.Api.Controllers
 {
-    [Route("api/[controller]")] 
+    [Route("api/[controller]")]
     [ApiController]
     public class PostsController(AppDbContext dbContext) : ControllerBase
     {
@@ -16,14 +17,56 @@ namespace SocialHub.Api.Controllers
         [Authorize]
         public async Task<ActionResult> CreatePost(PostRequestDto request)
         {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userIdClaim) || Guid.TryParse(userIdClaim, out Guid authorId))
+            {
+                return Unauthorized("The authentication token is invalid or missing the user id claim.");
+            }
+
+
             request.Text = request.Text.Trim();
             request.Title = request.Title?.Trim();
 
-            dbContext.Posts.Add(new Post { Title = request.Title, Text = request.Text, AuthorId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!)});
+            var post = new Post { Title = request.Title, Text = request.Text, AuthorId = authorId };
+
+            dbContext.Posts.Add(post);
 
             await dbContext.SaveChangesAsync();
 
-            return Ok();
-        } 
+            // map entity to response dto
+            var postResponseDto = new PostResponseDto
+            {
+                PostId = post.PostId,
+                Text = post.Text,
+                Title = post.Title,
+                CreatedAt = post.CreatedAt
+            };
+
+            return CreatedAtAction(nameof(GetPost), new { id = postResponseDto.PostId }, postResponseDto); 
+        }
+
+
+        [HttpGet]
+        public async Task<ActionResult<PostResponseDto>> GetPost(int id)
+        {
+            var dto = dbContext.Posts
+                .AsNoTracking()
+                .Where(p => p.PostId == id)
+                .Select(p => new PostResponseDto { PostId = p.PostId, Text = p.Text, CreatedAt = p.CreatedAt, Title = p.Title })
+                .FirstOrDefaultAsync();
+
+            if (dto is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(dto);
+        }
+
+
+
+
     }
-}
+}   
+

@@ -12,8 +12,8 @@ using SocialHub.Api.Data;
 namespace SocialHub.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261009223506_FixUserSchema")]
-    partial class FixUserSchema
+    [Migration("20261117162926_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
