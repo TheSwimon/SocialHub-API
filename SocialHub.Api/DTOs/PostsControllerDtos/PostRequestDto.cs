@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SocialHub.Api.DTOs.PostControllerDtos.PostDtos
+namespace SocialHub.Api.DTOs.PostsControllerDtos
 {
     public class PostRequestDto
     {

@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SocialHub.Api.Data;
-using SocialHub.Api.DTOs.PostControllerDtos.CommentDtos;
+using SocialHub.Api.DTOs.CommentsControllerDtos;
 using SocialHub.Api.Entities;
 using System.Security.Claims;
 
