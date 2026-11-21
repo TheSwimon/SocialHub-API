@@ -58,6 +58,40 @@ namespace SocialHub.Api.Controllers
         }
 
 
+        [HttpPut("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<ActionResult> UpdateComment(int id, CommentRequestDto request)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!Guid.TryParse(userIdClaim, out Guid authorId)) {
+                return Unauthorized();
+            }
+
+            var comment = await dbContext.Comments.FindAsync(id);
+
+            if (comment is null)
+            {
+                return NotFound();
+            }
+
+            if (comment.AuthorId != authorId)
+            {
+                return Forbid();
+            }
+
+            comment.Text = request.Text.Trim();
+
+            await dbContext.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+
         [HttpGet("{id:int}")]
         [AllowAnonymous]
         public async Task<ActionResult<CommentResponseDto>> GetComment(int id)
