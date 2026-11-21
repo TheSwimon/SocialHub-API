@@ -90,6 +90,40 @@ namespace SocialHub.Api.Controllers
             }
 
 
+        [HttpDelete("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<ActionResult> DeletePost(int id)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!Guid.TryParse(userIdClaim, out Guid authorId))
+            {
+                return Unauthorized();
+            }
+
+            var post = await dbContext.Posts.FindAsync(id);
+
+            if (post is null)
+            {
+                return NotFound();  
+            }
+
+            if (post.AuthorId != authorId)
+            {
+                return Forbid();
+            }
+
+            dbContext.Posts.Remove(post);
+            await dbContext.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+
 
         [HttpGet("{id:int}")]
         [AllowAnonymous]
