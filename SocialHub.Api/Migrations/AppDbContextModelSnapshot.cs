@@ -247,6 +247,9 @@ namespace SocialHub.Api.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("CommentId");
 
                     b.HasIndex("AuthorId");
@@ -278,6 +281,9 @@ namespace SocialHub.Api.Migrations
                     b.Property<string>("Title")
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("PostId");
 

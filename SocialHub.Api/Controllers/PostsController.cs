@@ -2,9 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SocialHub.Api.Data;
-using SocialHub.Api.DTOs.PostControllerDtos.PostDtos;
+using SocialHub.Api.DTOs.PostsControllerDtos;
 using SocialHub.Api.Entities;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+
 
 namespace SocialHub.Api.Controllers
 {
@@ -12,15 +14,19 @@ namespace SocialHub.Api.Controllers
     [ApiController]
     public class PostsController(AppDbContext dbContext) : ControllerBase
     {
+        
+
         [HttpPost]
-        [Authorize]
+        [ProducesResponseType(typeof(PostResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<PostResponseDto>> CreatePost(PostRequestDto request)
         {
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid authorId))
             {
-                return Unauthorized("The authentication token is invalid or missing the user id claim.");
+                return Unauthorized();
             }
 
 
@@ -47,8 +53,49 @@ namespace SocialHub.Api.Controllers
             return CreatedAtAction(nameof(GetPost), new { id = post.PostId }, postResponseDto); 
         }
 
+        [HttpPut("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(PostResponseDto), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult> UpdatePost(int id, PostRequestDto request)
+            {
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (!Guid.TryParse(userIdClaim, out Guid authorId))
+                {
+                    return Unauthorized();
+                }
+
+                var post = await dbContext.Posts.FindAsync(id);
+
+                if (post is null)
+                {
+                    return NotFound();
+                }
+
+                if (post.AuthorId != authorId)
+                {
+                    return Forbid();
+                }
+
+                post.Text = request.Text.Trim();
+                post.Title = request.Title?.Trim();
+                post.UpdatedAt = DateTime.UtcNow;
+
+                await dbContext.SaveChangesAsync();
+
+                return NoContent();
+            }
+
+
 
         [HttpGet("{id:int}")]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(PostResponseDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<PostResponseDto>> GetPost(int id)
         {
             var dto = await dbContext.Posts

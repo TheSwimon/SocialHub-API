@@ -13,7 +13,6 @@ namespace SocialHub.Api.Controllers
     public class CommentsController(AppDbContext dbContext) : ControllerBase
     {
         [HttpPost("~/api/posts/{postId:int}/comments")]
-        [Authorize]
         public async Task<ActionResult<CommentResponseDto>> CreateComment(int postId, CommentRequestDto request)
         {
 
@@ -21,14 +20,14 @@ namespace SocialHub.Api.Controllers
 
             if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid authorId))
             {
-                return Unauthorized("The authentication token is invalid or missing the user id claim.");
+                return Unauthorized();
             }
 
             request.Text = request.Text.Trim();
 
             if (!await dbContext.Posts.AnyAsync(p => p.PostId == postId))
             {
-                return NotFound("Post not found.");
+                return NotFound();
             }
 
             var comment = new Comment
@@ -60,6 +59,7 @@ namespace SocialHub.Api.Controllers
 
 
         [HttpGet("{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<CommentResponseDto>> GetComment(int id)
         {
             var dto = await dbContext.Comments

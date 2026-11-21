@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ namespace SocialHub.Api.Controllers
         [HttpPost("register")]
         [ProducesResponseType(typeof(RegisterResponseDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [AllowAnonymous]
         public async Task<ActionResult<RegisterResponseDto>> Register(RegisterRequestDto request)
         {
 
@@ -84,6 +86,7 @@ namespace SocialHub.Api.Controllers
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+        [AllowAnonymous]
         public async Task<ActionResult<LoginResponseDto>> Login(LoginRequestDto request)
         { 
 
@@ -125,6 +128,7 @@ namespace SocialHub.Api.Controllers
         [HttpGet("confirm-email", Name = "ConfirmEmail")]
         [ProducesResponseType(typeof(MessageResponseDto), statusCode: StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), statusCode: StatusCodes.Status400BadRequest)]
+        [AllowAnonymous]
         public async Task<ActionResult<MessageResponseDto>> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
         {
             if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
@@ -161,6 +165,7 @@ namespace SocialHub.Api.Controllers
         [HttpPost("resend-email-confirmation", Name = "ResendEmailConfirmation")]
         [ProducesResponseType(typeof(MessageResponseDto), statusCode: StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ValidationProblemDetails), statusCode: StatusCodes.Status400BadRequest)]
+        [AllowAnonymous]
         public async Task<ActionResult<MessageResponseDto>> ResendEmailConfirmation([FromBody] ResendEmailConfirmationRequestDto request)
         {
             var user = await userManager.FindByEmailAsync(request.Email);

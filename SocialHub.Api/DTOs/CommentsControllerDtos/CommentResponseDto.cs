@@ -1,4 +1,4 @@
-﻿namespace SocialHub.Api.DTOs.PostControllerDtos.CommentDtos
+﻿namespace SocialHub.Api.DTOs.CommentsControllerDtos
 {
     public class CommentResponseDto
     {
