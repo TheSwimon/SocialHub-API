@@ -7,6 +7,7 @@ namespace SocialHub.Api.Entities
             public int CommentId { get; set; } 
             public required string Text { get; set; }
             public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+            public DateTime? UpdatedAt { get; set; }
 
             public Guid AuthorId { get; set; }
             public ApplicationUser Author { get; set; } = null!;
