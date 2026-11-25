@@ -17,6 +17,7 @@ namespace SocialHub.Api.Data
             base.OnModelCreating(modelBuilder);
 
 
+
             modelBuilder.Entity<ApplicationUser>(user =>
             {
                 user.Property(u => u.UserName)
@@ -49,24 +50,34 @@ namespace SocialHub.Api.Data
                 .HasMaxLength(2000);
 
             });
+            modelBuilder.Entity<Post>()
+                .HasOne(p => p.Author)
+                .WithMany(u => u.Posts)
+                .HasForeignKey(p => p.AuthorId)
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.Post)
                 .WithMany(p => p.Comments)
                 .HasForeignKey(c => c.PostId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<Post>()
-                .HasOne(p => p.Author)
-                .WithMany(u => u.Posts)
-                .HasForeignKey(p => p.AuthorId)
-                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.ParentComment)
+                .WithMany(c => c.Replies)
+                .HasForeignKey(c => c.ParentCommentId)
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.Author)
                 .WithMany(u => u.Comments)
                 .HasForeignKey(c => c.AuthorId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<ApplicationUser>().HasQueryFilter(u => !u.IsDeleted);
+            modelBuilder.Entity<Post>().HasQueryFilter(p => !p.IsDeleted);
+            modelBuilder.Entity<Comment>().HasQueryFilter(c => !c.IsDeleted);
+
         }
 
     }

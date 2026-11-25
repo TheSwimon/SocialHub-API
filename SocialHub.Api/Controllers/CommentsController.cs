@@ -12,8 +12,8 @@ namespace SocialHub.Api.Controllers
     [ApiController]
     public class CommentsController(AppDbContext dbContext) : ControllerBase
     {
-        [HttpPost("~/api/posts/{postId:int}/comments")]
-        public async Task<ActionResult<CommentResponseDto>> CreateComment(int postId, CommentRequestDto request)
+        [HttpPost("~/api/posts/{postId:int}/comments/{commentId:Integer}")]
+        public async Task<ActionResult<CommentResponseDto>> CreateComment(int postId, int? commentId, CommentRequestDto request)
         {
 
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -23,19 +23,20 @@ namespace SocialHub.Api.Controllers
                 return Unauthorized();
             }
 
-            request.Text = request.Text.Trim();
-
             if (!await dbContext.Posts.AnyAsync(p => p.PostId == postId))
             {
                 return NotFound();
             }
 
+            var text = request.Text.Trim();
+
             var comment = new Comment
             {
-                Text = request.Text,
+                Text = text,
                 AuthorId = authorId,
                 PostId = postId
             };
+
 
             dbContext.Comments.Add(comment);
             await dbContext.SaveChangesAsync();
