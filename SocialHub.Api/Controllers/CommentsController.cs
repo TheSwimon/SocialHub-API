@@ -8,12 +8,17 @@ using System.Security.Claims;
 
 namespace SocialHub.Api.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/posts/{postId:int}/comments")]
     [ApiController]
     public class CommentsController(AppDbContext dbContext) : ControllerBase
     {
-        [HttpPost("~/api/posts/{postId:int}/comments/{commentId:Integer}")]
-        public async Task<ActionResult<CommentResponseDto>> CreateComment(int postId, int? commentId, CommentRequestDto request)
+
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [HttpPost]
+        public async Task<ActionResult<CommentResponseDto>> CreateComment(int postId, CommentRequestDto request)
         {
 
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -37,6 +42,18 @@ namespace SocialHub.Api.Controllers
                 PostId = postId
             };
 
+            if (request.ParentCommentId is not null)
+            {
+                var topComment = await dbContext.Comments.FindAsync(request.ParentCommentId);
+
+                if (topComment is null || topComment.PostId != postId)
+                {
+                    return BadRequest();
+                }
+
+                comment.ParentCommentId = request.ParentCommentId;
+            }
+
 
             dbContext.Comments.Add(comment);
             await dbContext.SaveChangesAsync();
@@ -55,17 +72,17 @@ namespace SocialHub.Api.Controllers
 
             };
 
-            return CreatedAtAction(nameof(GetComment), new { id = comment.CommentId }, commentResponseDto);
+            return CreatedAtAction(nameof(GetComment), new { postId, commentId = comment.CommentId }, commentResponseDto);
         }
 
 
-        [HttpPut("{id:int}")]
+        [HttpPut("{commentId:int}")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public async Task<ActionResult> UpdateComment(int id, CommentRequestDto request)
+        public async Task<ActionResult> UpdateComment(int postId, int commentId, CommentRequestDto request)
         {
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -73,12 +90,13 @@ namespace SocialHub.Api.Controllers
                 return Unauthorized();
             }
 
-            var comment = await dbContext.Comments.FindAsync(id);
+            var comment = await dbContext.Comments.FindAsync(commentId);
 
-            if (comment is null)
+            if (comment is null || comment.PostId != postId)
             {
                 return NotFound();
             }
+
 
             if (comment.AuthorId != authorId)
             {
@@ -93,13 +111,13 @@ namespace SocialHub.Api.Controllers
         }
 
 
-        [HttpDelete("{id:int}")]
+        [HttpDelete("{commentId:int}")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public async Task<ActionResult> DeleteComment(int id)
+        public async Task<ActionResult> DeleteComment(int postId, int commentId)
         {
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -108,9 +126,9 @@ namespace SocialHub.Api.Controllers
                 return Unauthorized();
             }
 
-            var comment = await dbContext.Comments.FindAsync(id);
+            var comment = await dbContext.Comments.FindAsync(commentId);
 
-            if (comment is null)
+            if (comment is null || comment.PostId != postId)
             {
                 return NotFound();
             }
@@ -126,13 +144,13 @@ namespace SocialHub.Api.Controllers
             return NoContent();
         }
 
-        [HttpGet("{id:int}")]
+        [HttpGet("{commentId:int}")]
         [AllowAnonymous]
-        public async Task<ActionResult<CommentResponseDto>> GetComment(int id)
+        public async Task<ActionResult<CommentResponseDto>> GetComment(int postId, int commentId)
         {
             var dto = await dbContext.Comments
                  .AsNoTracking()
-                 .Where(c => c.CommentId == id)
+                 .Where(c => c.CommentId == commentId && c.PostId == postId)
                  .Select(c => new CommentResponseDto { CommentId = c.CommentId, Text = c.Text, CreatedAt = c.CreatedAt, PostId = c.PostId, AuthorId = c.AuthorId, AuthorUserName = c.Author.UserName! })
                  .FirstOrDefaultAsync();
 
